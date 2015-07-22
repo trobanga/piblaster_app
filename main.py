@@ -13,7 +13,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import NumericProperty, ReferenceListProperty,\
     ObjectProperty
 
-from blueberry import BlueberryClient
+from blueberry_client import BlueberryClient
 import time
 import threading
 
