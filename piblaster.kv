@@ -1,0 +1,25 @@
+#:kivy 1.9.0
+
+# <SendButton>:
+#     Button:
+#         font_size: 30
+#         center_x: root.width * 3 / 4
+#         top: root.top - 50
+#         text: "Send"
+
+<Piblaster>:
+    # snd: send_button
+    canvas: 
+        Rectangle:  
+            pos: self.center_x-5, 0
+            size: 10, self.height
+
+    Label:
+        font_size: 70  
+        center_x: root.width / 4
+        top: root.top - 50
+        text: "Piblaster"
+
+
+    # SendButton:
+    #     id: send_button
