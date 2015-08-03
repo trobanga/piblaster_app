@@ -13,7 +13,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import NumericProperty, ReferenceListProperty,\
     ObjectProperty
 
-#from blueberry_client import BlueberryClient
+from blueberry_client import BlueberryClient
 import time
 import threading
 
@@ -39,11 +39,11 @@ class PiblasterApp(App):
     snd = ObjectProperty(None)
     def __init__(self):
         super(PiblasterApp, self).__init__()
-        # self.blueberry = BlueberryClient()
+        self.blueberry = BlueberryClient()
 
     def connect(self, obj):
-        # if self.blueberry.get_socket_stream('piblaster3000-0'):
-        #     cprint("Successfully connected!")
+        if self.blueberry.get_socket_stream('piblaster3000-0'):
+            cprint("Successfully connected!")
 
         pass
         
@@ -57,7 +57,7 @@ class PiblasterApp(App):
         self.blueberry.send('hello3')
 
 
-        self.receive(0)
+        # self.receive(0)
         
         # t = self.blueberry.receive()
         # cprint("antowort")
