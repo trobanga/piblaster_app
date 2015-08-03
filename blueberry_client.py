@@ -1,5 +1,8 @@
 from jnius import autoclass
 
+from Queue import Queue
+import threading
+
 class BlueberryClient(object):
 
     def __init__(self): 
@@ -12,6 +15,9 @@ class BlueberryClient(object):
         self.send_stream = None
         self.connected = False
 
+        self.messages = Queue()
+    
+        
     def get_socket_stream(self, name):
         """Connect to name. If successful, self.recv_stream and self.send_stream are set."""
         self.cprint( '========================================================================================')
@@ -52,6 +58,7 @@ class BlueberryClient(object):
             print self.recv_stream.available()
             print self.recv_stream.markSupported()
             self.connected = True
+            self.receive(True)
         except Exception as e:
             self.cprint('connect failed')
             print(e)
@@ -59,6 +66,9 @@ class BlueberryClient(object):
             self.send_stream = None
             self.connected = False
 
+
+        
+            
         return self.connected
 
     def cprint(self, s):
@@ -69,22 +79,38 @@ class BlueberryClient(object):
         self.send_stream.write('{}'.format(cmd))
         self.send_stream.flush()
 
-    def receive(self):
-        l = []
-        a = self.recv_stream.read()
-        while a != 10: # read until newline '\n'
-            try:
-                self.cprint("{} {}".format(unichr(a), a))
-                l.append(unichr(a))
-            except Exception:
-                pass
-            a = self.recv_stream.read()
-        return ''.join(l)
-        
-    def reset(self, btns):
-        for btn in btns:
-            btn.state = 'normal'
-        self.send('0\n')
 
+    def receive(self, daemon=False):
+        """Waits for message and saves it in self.messages"""
+        if daemon:
+            t = threading.Thread(target=self.receive)
+            t.daemon = True
+            t.start()
+        else:
+            while self.connected:
+                try:
+                    a = ""
+                    msg = self.recv_stream.read(a)
+                    self.cprint("------------------")
+                    print a
+                    print msg
+                    self.cprint("----------------------")
+                    self.messages.put(msg)
+                except Exception as e:
+                    print e
+    
+        
+    # def receive(self):
+    #     l = []
+    #     a = self.recv_stream.read()
+    #     while a != 10: # read until newline '\n'
+    #         try:
+    #             self.cprint("{} {}".format(unichr(a), a))
+    #             l.append(unichr(a))
+    #         except Exception:
+    #             pass
+    #         a = self.recv_stream.read()
+    #     return ''.join(l)
+        
 
 
