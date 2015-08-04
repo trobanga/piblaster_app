@@ -15,6 +15,7 @@ class BlueberryClient(object):
         self.send_stream = None
         self.connected = False
 
+        self.cur_msg = ""
         self.messages = Queue()
     
         
@@ -65,22 +66,20 @@ class BlueberryClient(object):
             self.recv_stream = None
             self.send_stream = None
             self.connected = False
-
-
-        
             
         return self.connected
 
     def cprint(self, s):
         """Print in red"""
         print '\033[31m' + s + '\033[0m'
-         
+
+                 
     def send(self, cmd):
         self.send_stream.write('{}'.format(cmd))
         self.send_stream.flush()
 
 
-    def receive(self, daemon=False):
+    def receive(self, daemon=False, eol='\n'):
         """Waits for message and saves it in self.messages"""
         if daemon:
             t = threading.Thread(target=self.receive)
@@ -89,28 +88,14 @@ class BlueberryClient(object):
         else:
             while self.connected:
                 try:
-                    a = ""
-                    msg = self.recv_stream.read(a)
-                    self.cprint("------------------")
-                    print a
-                    print msg
-                    self.cprint("----------------------")
-                    self.messages.put(msg)
+                    m = unichr(self.recv_stream.read())
+                    if m == eol:
+                        self.messages.put(msg)
+                        msg = ""
+                    else:
+                        msg += m
                 except Exception as e:
                     print e
-    
-        
-    # def receive(self):
-    #     l = []
-    #     a = self.recv_stream.read()
-    #     while a != 10: # read until newline '\n'
-    #         try:
-    #             self.cprint("{} {}".format(unichr(a), a))
-    #             l.append(unichr(a))
-    #         except Exception:
-    #             pass
-    #         a = self.recv_stream.read()
-    #     return ''.join(l)
         
 
 

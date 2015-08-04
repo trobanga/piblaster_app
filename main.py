@@ -22,12 +22,14 @@ class Piblaster(Widget):
 
 
 class SendButton(Button):
+
     def build(self):
     #     pass#super(SendButton, self).__init__()
         print 'hell'
         self.bind(on_release=self.send)
         return self
-    
+
+        
     def send(self, obj):
         cprint("send, obj")
         print(obj.text)
@@ -35,48 +37,57 @@ class SendButton(Button):
         
 
 class PiblasterApp(App):
-
+    cmd_send_list = ['MUSIC_DB_VERSION', 'MUSIC_DB',
+                     'PLAYLIST', 'CURRENT_SONG', 'STATE',
+                     'APPEND_SONG', 'APPEND_ALBUM', 'APPEND_ARTIST', 
+                     'PLAY_SONG', 'PLAY_ALBUM', 'PLAY_ARTIST', 
+                     'PREPEND_SONG', 'PREPEND_ALBUM', 'PREPEND_ARTIST']
+    
     snd = ObjectProperty(None)
     def __init__(self):
         super(PiblasterApp, self).__init__()
+        self.music_db_version = 0
+        self.music_db_size = 0 # number of chunks to be transmitted
         self.blueberry = BlueberryClient()
+        cmd_recv_list = {'ACK': None,
+                        'MUSIC_DB_CHUNK': self.recv_music_db_chunk, 'DB_SIZE': self.recv_music_db_size,
+                        'DB_PACKET_COUNT': None, 'MUSIC_DB_VERSION': self.recv_music_db_version,
+                        'PLAYLIST_CHANGED': None, 'CURRENT_SONG': None, 'STATE': None}
 
+            
     def connect(self, obj):
         if self.blueberry.get_socket_stream('piblaster3000-0'):
             cprint("Successfully connected!")
 
-        pass
+            
+    def recv_music_db_version(self, v):
+        if v != self.music_db_version:
+            self.music_db_version = v
+            self.send('MUSIC_DB')
+
+            
+    def recv_music_db_size(s)
+        self.music_db_size = s
+
         
-    def send(self, obj):
-        cprint("send, obj")
-        print(obj.text)
-        # l = Label(text='sent')
-        
-        self.blueberry.send('hello1')
-        self.blueberry.send('hesdo2')
-        self.blueberry.send('hello3')
-
-
-        # self.receive(0)
-        
-        # t = self.blueberry.receive()
-        # cprint("antowort")
-        # print t
-        # cprint("antowort")
-        # l = Label(text=t)
-        # self.piblaster.add_widget(l)
-
-
+    def send(self, cmd, payload=""):
+        pass 
+                
         
     def receive(self, obj):
-        print time.clock()
-        i = 0
-        while True:
-            i += 1
-            t = self.blueberry.receive()
-            l = Label(text=t)
-            self.piblaster.add_widget(l)
-        print time.clock()
+        """
+        Checks bt queue for new messages.
+        Packets are split into command and payload.
+        Corresponding function is called with payload as parameter.
+        
+        """
+        if not self.blueberry.messages.empty():
+            # received a new messages
+            m = self.blueberry.get()
+            cmd, payload = m.split(',' 1)
+            if cmd in self.cmd_recv_list:
+                self.cmd_recv_list[cmd](payload)
+        
         
     def build(self):
         self.piblaster = Piblaster()
@@ -91,10 +102,12 @@ class PiblasterApp(App):
         l.add_widget(c)
         return l
 
+    
 def cprint(s):
     """Print in red"""
     print '\033[31m' + s + '\033[0m'
 
+    
 if __name__ == "__main__":
     PiblasterApp().run()
 
