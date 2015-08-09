@@ -1,3 +1,7 @@
+"""
+Bluetooth client for android phones
+"""
+
 from jnius import autoclass
 
 from Queue import Queue
@@ -61,7 +65,7 @@ class BlueberryClient(object):
             self.connected = True
             self.receive(True)
         except Exception as e:
-            self.cprint('connect failed')
+            self.cprint('connect failed')\
             print(e)
             self.recv_stream = None
             self.send_stream = None
@@ -74,8 +78,8 @@ class BlueberryClient(object):
         print '\033[31m' + s + '\033[0m'
 
                  
-    def send(self, cmd):
-        self.send_stream.write('{}'.format(cmd))
+    def send(self, s):
+        self.send_stream.write('{},{}'.format(s))
         self.send_stream.flush()
 
 
