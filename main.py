@@ -9,13 +9,15 @@ from kivy.uix.widget import Widget
 from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.boxlayout import BoxLayout
-
+from kivy.uix.listview import ListView
 from kivy.properties import NumericProperty, ReferenceListProperty,\
     ObjectProperty
 
 from blueberry_client import BlueberryClient
 import time
 import threading
+import json
+
 
 class Piblaster(Widget):
     pass
@@ -34,7 +36,15 @@ class SendButton(Button):
         cprint("send, obj")
         print(obj.text)
         # self.blueberry.send('Hello')
-        
+
+
+class SongList(ListView):
+        def __init__(self):
+            superr(MainView, self).__init__()
+            
+        def update(self, l)
+            item_strings = l
+            
 
 class PiblasterApp(App):
     cmd_send_list = ['MUSIC_DB_VERSION', 'MUSIC_DB',
@@ -42,17 +52,20 @@ class PiblasterApp(App):
                      'APPEND_SONG', 'APPEND_ALBUM', 'APPEND_ARTIST', 
                      'PLAY_SONG', 'PLAY_ALBUM', 'PLAY_ARTIST', 
                      'PREPEND_SONG', 'PREPEND_ALBUM', 'PREPEND_ARTIST']
-    
+
+         
     snd = ObjectProperty(None)
     def __init__(self):
         super(PiblasterApp, self).__init__()
-        self.music_db_version = 0
+        self.music_db_version = -1
         self.music_db_size = 0 # number of chunks to be transmitted
-        self.blueberry = BlueberryClient()
+        self.music_db_chunks = {}
+        # self.blueberry = BlueberryClient()
         cmd_recv_list = {'ACK': None,
                         'MUSIC_DB_CHUNK': self.recv_music_db_chunk, 'DB_SIZE': self.recv_music_db_size,
                         'DB_PACKET_COUNT': None, 'MUSIC_DB_VERSION': self.recv_music_db_version,
-                        'PLAYLIST_CHANGED': None, 'CURRENT_SONG': None, 'STATE': None}
+                        'PLAYLIST_CHANGED': None, 'CURRENT_SONG': None, 'STATE': None,
+                        'MUSIC_DB_SEND_COMPLETE': self.music_db_send_complete}
 
             
     def connect(self, obj):
@@ -60,19 +73,47 @@ class PiblasterApp(App):
             cprint("Successfully connected!")
 
             
+    def ask_music_db_version(self, s):
+        self.send(MUSIC_DB_VERSION)
+
+        
     def recv_music_db_version(self, v):
         if v != self.music_db_version:
             self.music_db_version = v
+            self.music_db_chunks = {}
             self.send('MUSIC_DB')
 
             
-    def recv_music_db_size(s)
+    def recv_music_db_size(self, s):
         self.music_db_size = s
 
+
+    def recv_music_db_chunk(self, s):
+        n, c = s.split(',', 1)  # n: chunk number, c: chunk
+        self.music_db_chunks[n] = c
+
         
+    def music_db_send_complete(self, s):
+        if len(self.music_db_chunks) == self.music_db_size:
+            music_db_json = ""
+            for i in sorted(self.music_db_chunks.iterkeys()):
+                music_db_json += self.music_db_chunks[i]
+            # TODO: recreate ListView
+        else:
+            missing = list(set(range(self.music_db_size)) - set(self.music_db_chunks.keys()))
+            self.send('MUSIC_DB', json.dumps(missing))
+                            
+            
     def send(self, cmd, payload=""):
-        pass 
-                
+        """
+        Sends cmd and payload via bluetooth.
+        """
+        if self.blueberry.connected and cmd in self.cmd_send_list:
+            self.blueberry.send("{},{}".format(cmd, payload))
+            return True
+        else:
+            return False
+ 
         
     def receive(self, obj):
         """
@@ -84,7 +125,7 @@ class PiblasterApp(App):
         if not self.blueberry.messages.empty():
             # received a new messages
             m = self.blueberry.get()
-            cmd, payload = m.split(',' 1)
+            cmd, payload = m.split(',', 1)
             if cmd in self.cmd_recv_list:
                 self.cmd_recv_list[cmd](payload)
         
