@@ -19,6 +19,12 @@ import threading
 import json
 
 
+# debug print
+def cprint(s):
+    """Print in red"""
+    print '\033[31m' + s + '\033[0m'
+
+
 class Piblaster(Widget):
     pass
 
@@ -42,7 +48,7 @@ class SongList(ListView):
         def __init__(self):
             superr(MainView, self).__init__()
             
-        def update(self, l)
+        def update(self, l):
             item_strings = l
             
 
@@ -57,27 +63,32 @@ class PiblasterApp(App):
     snd = ObjectProperty(None)
     def __init__(self):
         super(PiblasterApp, self).__init__()
+
+        # debug
+        cprint("START!")
+        
         self.music_db_version = -1
         self.music_db_size = 0 # number of chunks to be transmitted
         self.music_db_chunks = {}
-        # self.blueberry = BlueberryClient()
-        cmd_recv_list = {'ACK': None,
-                        'MUSIC_DB_CHUNK': self.recv_music_db_chunk, 'DB_SIZE': self.recv_music_db_size,
-                        'DB_PACKET_COUNT': None, 'MUSIC_DB_VERSION': self.recv_music_db_version,
-                        'PLAYLIST_CHANGED': None, 'CURRENT_SONG': None, 'STATE': None,
-                        'MUSIC_DB_SEND_COMPLETE': self.music_db_send_complete}
-
+        self.blueberry = BlueberryClient()
+        self.cmd_recv_list = {'ACK': None,
+                              'MUSIC_DB_CHUNK': self.recv_music_db_chunk, 'DB_SIZE': self.recv_music_db_size,
+                              'DB_PACKET_COUNT': None, 'MUSIC_DB_VERSION': self.recv_music_db_version,
+                              'PLAYLIST_CHANGED': None, 'CURRENT_SONG': None, 'STATE': None,
+                              'MUSIC_DB_SEND_COMPLETE': self.music_db_send_complete}
             
     def connect(self, obj):
         if self.blueberry.get_socket_stream('piblaster3000-0'):
             cprint("Successfully connected!")
+            self.receive(daemon=True)
 
             
-    def ask_music_db_version(self, s):
-        self.send(MUSIC_DB_VERSION)
+    def ask_music_db_version(self, *args):
+        self.send('MUSIC_DB_VERSION')
 
         
     def recv_music_db_version(self, v):
+        cprint('Version: {}'.format(v))
         if v != self.music_db_version:
             self.music_db_version = v
             self.music_db_chunks = {}
@@ -85,7 +96,8 @@ class PiblasterApp(App):
 
             
     def recv_music_db_size(self, s):
-        self.music_db_size = s
+        cprint('recv_music_db_size: {}'.format(s))
+        self.music_db_size = int(s)
 
 
     def recv_music_db_chunk(self, s):
@@ -98,6 +110,8 @@ class PiblasterApp(App):
             music_db_json = ""
             for i in sorted(self.music_db_chunks.iterkeys()):
                 music_db_json += self.music_db_chunks[i]
+
+            print music_db_json
             # TODO: recreate ListView
         else:
             missing = list(set(range(self.music_db_size)) - set(self.music_db_chunks.keys()))
@@ -113,27 +127,38 @@ class PiblasterApp(App):
             return True
         else:
             return False
+
+
+    def send_button(self, obj):
+        self.ask_music_db_version()
  
         
-    def receive(self, obj):
+    def receive(self, daemon=False):
         """
         Checks bt queue for new messages.
         Packets are split into command and payload.
         Corresponding function is called with payload as parameter.
         
         """
-        if not self.blueberry.messages.empty():
-            # received a new messages
-            m = self.blueberry.get()
-            cmd, payload = m.split(',', 1)
-            if cmd in self.cmd_recv_list:
-                self.cmd_recv_list[cmd](payload)
+        if daemon:
+            cprint('Start receive daemon')
+            t = threading.Thread(target=self.receive)
+            t.daemon = True
+            t.start()
+        else:
+            while True:
+                if not self.blueberry.messages.empty():
+                    # received a new messages
+                    m = self.blueberry.messages.get()
+                    cmd, payload = m.split(',', 1)
+                    if cmd in self.cmd_recv_list:
+                        self.cmd_recv_list[cmd](payload)
         
         
     def build(self):
         self.piblaster = Piblaster()
         b = Button(text="Sent")
-        b.bind(on_release=self.send)
+        b.bind(on_release=self.send_button)
         c = Button(text="Connect")
         c.bind(on_release=self.connect)
 
@@ -144,10 +169,6 @@ class PiblasterApp(App):
         return l
 
     
-def cprint(s):
-    """Print in red"""
-    print '\033[31m' + s + '\033[0m'
-
     
 if __name__ == "__main__":
     PiblasterApp().run()

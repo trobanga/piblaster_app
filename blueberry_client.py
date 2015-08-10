@@ -25,11 +25,11 @@ class BlueberryClient(object):
         
     def get_socket_stream(self, name):
         """Connect to name. If successful, self.recv_stream and self.send_stream are set."""
-        self.cprint( '========================================================================================')
-        self.cprint( name)
+        self.cprint('========================================================================================')
+        self.cprint(name)
      
         paired_devices = self.BluetoothAdapter.getDefaultAdapter().getBondedDevices().toArray()
-        self.cprint( '========================================================================================')
+        self.cprint('========================================================================================')
         socket = None
         for device in paired_devices:
             if device.getName() == name:
@@ -41,7 +41,7 @@ class BlueberryClient(object):
             
             
                 socket = device.createRfcommSocketToServiceRecord(
-                self.UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"))
+                    self.UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"))
 
                 self.cprint('socket {}'.format(socket))
                 self.recv_stream = socket.getInputStream()
@@ -49,12 +49,12 @@ class BlueberryClient(object):
                 break
 
 
-        rd = socket.getRemoteDevice()
-        print rd.getName()
-        print rd.getType()
-        print rd.toString()
-        print rd.getAddress()
-        print rd.getBluetoothClass().toString()
+        # rd = socket.getRemoteDevice()
+        # print rd.getName()
+        # print rd.getType()
+        # print rd.toString()
+        # print rd.getAddress()
+        # print rd.getBluetoothClass().toString()
 
         try:
             self.cprint('connect')
@@ -65,7 +65,7 @@ class BlueberryClient(object):
             self.connected = True
             self.receive(True)
         except Exception as e:
-            self.cprint('connect failed')\
+            self.cprint('connect failed')
             print(e)
             self.recv_stream = None
             self.send_stream = None
@@ -79,7 +79,8 @@ class BlueberryClient(object):
 
                  
     def send(self, s):
-        self.send_stream.write('{},{}'.format(s))
+        self.cprint('s: {}'.format(s))
+        self.send_stream.write(str(s))
         self.send_stream.flush()
 
 
@@ -90,16 +91,20 @@ class BlueberryClient(object):
             t.daemon = True
             t.start()
         else:
+            self.cprint('begin receive')
+            msg = ""
             while self.connected:
                 try:
-                    m = unichr(self.recv_stream.read())
-                    if m == eol:
+                    m = self.recv_stream.read()
+                    self.cprint('{}, {}'.format(m, unichr(m)))
+                    if m == ord(eol):
+                        self.cprint('received: {}'.format(msg))
                         self.messages.put(msg)
                         msg = ""
                     else:
-                        msg += m
+                        msg += unichr(m)
                 except Exception as e:
                     print e
-        
+            self.cprint('end receive')
 
 
