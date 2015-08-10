@@ -1,25 +1,62 @@
 #:kivy 1.9.0
 
-# <SendButton>:
-#     Button:
-#         font_size: 30
-#         center_x: root.width * 3 / 4
-#         top: root.top - 50
-#         text: "Send"
+# # <SendButton>:
+# #     Button:
+# #         font_size: 30
+# #         center_x: root.width * 3 / 4
+# #         top: root.top - 50
+# #         text: "Send"
 
+# <Piblaster>:
+#     BoxLayout:
+#         orientation: "vertical"
+#         Label:
+#             font_size: 50
+#             text: "Piblaster"
+#             pos: 50, 0
+# #        Button:
+
+
+<MusicList>:
+    
+    # ListView:
+    #     item_strings: [str(index) for index in range(50)]
+    #     row_height: 150
+        
+<ConnectButton>:
+    image_id: image
+    
+    Image:
+        source: "icons/disconnected.png"
+        center: root.center
+        size: self.size
+        id: image
+        
 <Piblaster>:
-    # snd: send_button
-    canvas: 
-        Rectangle:  
-            pos: self.center_x-5, 0
-            size: 10, self.height
 
-    Label:
-        font_size: 70  
-        center_x: root.width / 4
-        top: root.top - 50
-        text: "Piblaster"
+    connect_btn_id: connect_btn
+    ml_id: ml
+    
+    BoxLayout:
+        orientation: 'vertical'
+        width: root.width
+        height: root.height
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint: 1, 0.1
 
+            ConnectButton:
+                size_hint: None, 1
+                width: 256
+                on_release: root.connect()
+                id: connect_btn
 
-    # SendButton:
-    #     id: send_button
+            Label:
+                text: 'Piblaster'
+                size_hint: 1, 1
+
+        MusicList:
+            size_hint: 1, 0.9
+            id: ml
+        #     # center: self.parent.center
+

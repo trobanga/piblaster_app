@@ -96,14 +96,13 @@ class BlueberryClient(object):
             while self.connected:
                 try:
                     m = self.recv_stream.read()
-                    self.cprint('{}, {}'.format(m, unichr(m)))
                     if m == ord(eol):
-                        self.cprint('received: {}'.format(msg))
                         self.messages.put(msg)
                         msg = ""
                     else:
                         msg += unichr(m)
                 except Exception as e:
+                    cprint('receiving failed')
                     print e
             self.cprint('end receive')
 
