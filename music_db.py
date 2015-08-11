@@ -72,17 +72,17 @@ class MusicDB(object):
         self.initialized = False
 
 
-    def load_db(self, l):
+    def load(self, l):
         try:
             db = json.loads(l) # maybe *l
             db = map(lambda x: db_structure(*x), db)
-            self._update_db(db)
+            self._update_(db)
         except Exception, e:
             print e
 
 
 
-    def _update_db(self, db):
+    def _update_(self, db):
         """
         Updates DBS with album and artist entries
         """

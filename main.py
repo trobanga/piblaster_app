@@ -20,7 +20,7 @@ from blueberry_client import BlueberryClient
 import time
 import threading
 import json
-
+import music_db
 
 # debug print
 def cprint(s):
@@ -35,21 +35,19 @@ class Piblaster(Widget):
                      'PLAY_SONG', 'PLAY_ALBUM', 'PLAY_ARTIST', 
                      'PREPEND_SONG', 'PREPEND_ALBUM', 'PREPEND_ARTIST']
 
-    connect_btn_id = ObjectProperty()
-    ml_id = ObjectProperty()
+    connect_btn = ObjectProperty()
+    multi_btn = ObjectProperty()
+    music_list = ObjectProperty()
     
     def __init__(self):
-        # Config.set('graphics', 'fullscreen', '1')
-        # Config.write()
-
         super(Piblaster, self).__init__()
 
         # debug
         cprint("START!")
-        cprint(str(self.size))
         self.music_db_version = -1
         self.music_db_size = 0 # number of chunks to be transmitted
         self.music_db_chunks = {}
+        self.music_db = music_db.MusicDB()
         self.blueberry = BlueberryClient()
         self.cmd_recv_list = {'ACK': None,
                               'MUSIC_DB_CHUNK': self.recv_music_db_chunk, 'DB_SIZE': self.recv_music_db_size,
@@ -59,15 +57,14 @@ class Piblaster(Widget):
 
             
     def connect(self):
-        self.ml_id.update([1432,33, 5463])
-        return
         if self.blueberry.get_socket_stream('piblaster3000-0'):
             cprint("Successfully connected!")
             self.receive(daemon=True)
-            self.connect_btn_id.update_image('icons/connected.png')
+            self.connect_btn.update_image('icons/connected.png')
+            self.ask_music_db_version()
             
             
-    def ask_music_db_version(self, *args):
+    def ask_music_db_version(self):
         self.send('MUSIC_DB_VERSION')
 
         
@@ -94,9 +91,16 @@ class Piblaster(Widget):
             music_db_json = ""
             for i in sorted(self.music_db_chunks.iterkeys()):
                 music_db_json += self.music_db_chunks[i]
-
             print music_db_json
-            # TODO: recreate ListView
+            self.music_db.load(music_db_json)
+            l = []
+            for k in self.music_db.artist_db.keys():
+                for a in self.music_db.artist_db[k]:
+                    l.append(a)
+            l = [["{} - {}".format(k, a) for a in self.music_db.artist_db[k]]
+                    for k in self.music_db.artist_db.keys()]
+                    
+            self.music_list.update(l)
         else:
             missing = list(set(range(self.music_db_size)) - set(self.music_db_chunks.keys()))
             self.send('MUSIC_DB', json.dumps(missing))
@@ -112,11 +116,6 @@ class Piblaster(Widget):
         else:
             return False
 
-
-    def send_button(self, obj):
-        self.ask_music_db_version()
- 
-        
     def receive(self, daemon=False):
         """
         Checks bt queue for new messages.
@@ -138,15 +137,28 @@ class Piblaster(Widget):
                     if cmd in self.cmd_recv_list:
                         self.cmd_recv_list[cmd](payload)
 
+                        
+    def play(self):
+        s = self.music_list.selected()
+        self.send('PLAY_ALBUM', s.text[2:-2]) # [2:-2] to remove [' and ']
+            
 
-
+    
 class ConnectButton(Button):
-    image_id = ObjectProperty()
+    cb_image = ObjectProperty()
 
     def update_image(self, source):
-        self.image_id.source=source
-        self.image_id.reload()
-    
+        self.cb_image.source=source
+        self.cb_image.reload()
+
+        
+class MultiButton(Button):
+    mb_image = ObjectProperty()
+
+    def update_image(self, source):
+        self.mb_image.source=source
+        self.mb_image.reload()
+
 
 class MusicList(ListView):
     def __init__(self, **kwargs):
@@ -163,22 +175,26 @@ class MusicList(ListView):
                                     cls=ListItemButton,
                                     selection_mode='single',
                                     allow_empty_selection=False)
-        self.adapter.bind(on_selection_change=self.selection_changed)
+        # self.adapter.bind(on_selection_change=self.selection_changed)
 
-
-    def selection_changed(self, obj):
-        cprint('selection is: {}'.format(self.adapter.selection[0]))
         
-    
+    def selected(self):
+        return self.adapter.selection[0]
+
+        
+    # def selection_changed(self, obj):
+    #     self.selected = self.adapter.selection[0]
+        
+
+            
     def update(self, l):
-        cprint('muhahahaha')
         data = [{'text': str(i), 'is_selected': False} for i in l]
         self.adapter = ListAdapter( data=data,
                                     args_converter=self.args_converter,
                                     cls=ListItemButton,
                                     selection_mode='single',
                                     allow_empty_selection=False)
-        self.adapter.bind(on_selection_change=self.selection_changed)
+        # self.adapter.bind(on_selection_change=self.selection_changed)
 
         
             
