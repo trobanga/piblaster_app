@@ -89,17 +89,20 @@ class Piblaster(Widget):
     def music_db_send_complete(self, s):
         if len(self.music_db_chunks) == self.music_db_size:
             music_db_json = ""
-            for i in sorted(self.music_db_chunks.iterkeys()):
-                music_db_json += self.music_db_chunks[i]
+            for i in range(len(self.music_db_chunks)):
+                music_db_json += self.music_db_chunks[str(i)]
             print music_db_json
             self.music_db.load(music_db_json)
             l = []
+            cprint('artists')
+            print self.music_db.artist_db
+            
             for k in self.music_db.artist_db.keys():
                 for a in self.music_db.artist_db[k]:
-                    l.append(a)
-            l = [["{} - {}".format(k, a) for a in self.music_db.artist_db[k]]
-                    for k in self.music_db.artist_db.keys()]
-                    
+                    l.append("{} - {}".format(k, a))
+            # l = [["{} - {}".format(k, a) for a in self.music_db.artist_db[k]]
+            #         for k in self.music_db.artist_db.keys()]
+            print l
             self.music_list.update(l)
         else:
             missing = list(set(range(self.music_db_size)) - set(self.music_db_chunks.keys()))
@@ -140,7 +143,7 @@ class Piblaster(Widget):
                         
     def play(self):
         s = self.music_list.selected()
-        self.send('PLAY_ALBUM', s.text[2:-2]) # [2:-2] to remove [' and ']
+        self.send('PLAY_ALBUM', s.text[:]) # [2:-2] to remove [' and ']
             
 
     

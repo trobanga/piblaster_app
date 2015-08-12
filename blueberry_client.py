@@ -102,7 +102,6 @@ class BlueberryClient(object):
                     else:
                         msg += unichr(m)
                 except Exception as e:
-                    cprint('receiving failed')
                     print e
             self.cprint('end receive')
 
