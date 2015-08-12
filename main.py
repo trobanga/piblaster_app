@@ -87,6 +87,7 @@ class Piblaster(Widget):
 
         
     def music_db_send_complete(self, s):
+        cprint('db received')
         if len(self.music_db_chunks) == self.music_db_size:
             music_db_json = ""
             for i in range(len(self.music_db_chunks)):
